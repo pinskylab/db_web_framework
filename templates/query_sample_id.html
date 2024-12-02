@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Query Sample ID</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        td {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+
+<h1>Query Lab Members</h1>
+
+    <script>
+        function queryLabMemberInfo() {
+            fetch('/query_lab_member_info')
+                .then(response => response.json())
+                .then(data => {
+                    const resultDiv = document.getElementById('result');
+                    if (data.status === 'success') {
+                        let table = '<table><tr>';
+                        // Create table headers dynamically
+                        for (let key in data.data[0]) {
+                            table += `<th>${key}</th>`;
+                        }
+                        table += '</tr>';
+                        // Fill rows with data
+                        data.data.forEach(row => {
+                            table += '<tr>';
+                            for (let key in row) {
+                                table += `<td>${row[key]}</td>`;
+                            }
+                            table += '</tr>';
+                        });
+                        table += '</table>';
+                        resultDiv.innerHTML = table;
+                    } else {
+                        resultDiv.innerHTML = `<p>Error: ${data.message}</p>`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('result').innerHTML = `<p>Request failed: ${error}</p>`;
+                });
+        }
+    </script>
+
+    <div id="result"></div>
+    <button class="submit-button" id="TEST" onclick="queryLabMemberInfo()">TEST</button>
+
+    <p>&nbsp;</p>
+
+    <a class="button-link" href="{{ url_for('index') }}">Back to Home</a>
+
+{% endblock %}

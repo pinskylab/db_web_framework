@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% endblock %}
+
+{% block body %}
+
+<h1>Log Samples</h1>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('upload_csv_sample_metadata') }}">Upload Metadata for Samples</a></li>
+                <li><a href="{{ url_for('log_tissue_box_81_samples') }}">Log Tissue Storage Box 81 Samples</a></li>
+                <li><a href="{{ url_for('log_tissue_box_49_samples') }}">Log Tissue Storage Box 49 Samples</a></li>
+            </ul>
+        </nav>
+
+        <h1>Query Samples</h1>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('query_sample_id') }}">Query Sample ID</a></li>
+            </ul>
+        </nav>
+
+        <h3>Query Samples</h3>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('readme') }}">README.md</a></li>
+            </ul>
+        </nav>
+
+
+{% endblock %}

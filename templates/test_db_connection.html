@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Connection Test</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        td {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<h1>Sample Storage Box 9x9</h1>
+
+    <label for="Username">Username: </label>
+    <input type="text" id="Username" name="Username">
+    <p>&nbsp;</p>
+    <label for="StorageLocation">Storage Location: </label>
+    <input type="text" id="StorageLocation" name="StorageLocation">
+    <p>&nbsp;</p>
+    <label for="BoxID">Box ID: </label>
+    <input type="text" id="BoxID" name="BoxID">
+    <p>&nbsp;</p>
+
+   
+
+    <p>&nbsp;</p>
+    <button class="submit-button" id="Test_Connection" onclick="test_db_connection()">Submit All</button>
+    <p>&nbsp;</p>
+    <a class="button-link" href="{{ url_for('index') }}">Back to Home</a>
+{% endblock %}

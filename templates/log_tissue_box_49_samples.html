@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Log Samples 7x7 Box</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        td {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<h1>Sample Storage Box 7x7</h1>
+
+    <label for="Username">Username: </label>
+    <input type="text" id="Username" name="Username">
+    <p>&nbsp;</p>
+    <label for="StorageLocation">Storage Location: </label>
+    <input type="text" id="StorageLocation" name="StorageLocation">
+    <p>&nbsp;</p>
+    <label for="BoxID">Box ID: </label>
+    <input type="text" id="BoxID" name="BoxID">
+    <p>&nbsp;</p>
+
+    <table id="sampleGrid">
+        <!-- Grid will be generated dynamically with JavaScript -->
+    </table>
+
+    <script>
+        const rows = 7; // Adjust based on your box size
+        const cols = 7; // Adjust based on your box size
+
+        // Function to convert row index to letter (0 -> A, 1 -> B, ..., 8 -> I)
+        function rowToLetter(row) {
+            return String.fromCharCode(65 + row);
+        }
+
+        // Generate grid
+        const table = document.getElementById('sampleGrid');
+        for (let i = 0; i < rows; i++) {
+            const tr = document.createElement('tr');
+            for (let j = 0; j < cols; j++) {
+                const td = document.createElement('td');
+                td.contentEditable = true; // Allow cell to be editable
+                tr.appendChild(td);
+            }
+            table.appendChild(tr);
+        }
+
+        // Function to submit individual samples
+        function submitSample(cell, rowLetter, col) {
+            const sampleId = cell.textContent.trim();
+            if (sampleId) {
+                const username = document.getElementById('Username').value;
+                const location = document.getElementById('StorageLocation').value;
+                const boxId = document.getElementById('BoxID').value;
+
+                const data = {
+                    sample_id: sampleId,
+                    inventory_date: new Date().toISOString().split('T')[0],
+                    inventory_location: location,
+                    inventoried_by_username: username,
+                    box_name: boxId,
+                    box_cell: `${rowLetter}-${col}` // Use row letter and column number
+                };
+
+                fetch('/add_sample_archive_info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log(`Sample ${sampleId} logged successfully at ${rowLetter}-${col}`);
+                    } else {
+                        console.error(`Error logging sample ${sampleId} at ${rowLetter}-${col}:`, data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        }
+
+        // Function to submit all samples
+        function submitAllSamples() {
+            const cells = document.querySelectorAll('#sampleGrid td');
+            cells.forEach((cell, index) => {
+                const row = Math.floor(index / cols);
+                const col = index % cols + 1;
+                const rowLetter = rowToLetter(row);
+                submitSample(cell, rowLetter, col);
+            });
+        }
+        
+    </script>
+    
+    <p>&nbsp;</p>
+    
+    <button class="submit-button" id="submitALL" onclick="submitAllSamples()">Submit All</button>
+
+    <p>&nbsp;</p>
+
+    <a class="button-link" href="{{ url_for('index') }}">Back to Home</a>
+
+{% endblock %}

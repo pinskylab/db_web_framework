@@ -1,0 +1,37 @@
+body {
+    margin:1;
+    font-family: sans-serif;
+}
+
+.button-link {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    background-color: #007bff;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.button-link:hover {
+    background-color: #0056b3;
+}
+
+.submit-button {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    background-color: #000000;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.drop-zone {
+    border: 5px solid blue;
+    width: 200px;
+    height: 100px;
+  }
+  
