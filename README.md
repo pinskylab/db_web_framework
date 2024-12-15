@@ -16,7 +16,11 @@ Before you begin, ensure that you have the following installed on your system:
 Start by cloning this repository to your local machine:
 
 ```bash
-git clone https://github.com/your-username/db_web_framework.git
+# Choose either http or ssh
+# http
+git clone https://github.com/pinskylab/db_web_framework.git
+# ssh
+git clone git@github.com:pinskylab/db_web_framework.git
 cd db_web_framework
 ```
 
