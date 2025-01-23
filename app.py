@@ -163,5 +163,81 @@ def query_lab_member_info():
 
     return jsonify(response)
 
+@app.route("/uploadCSV_os", methods=['POST'])
+def uploadCSV_os():
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "No file part"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No file selected"}), 400
+
+    # Save the uploaded file
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(file_path)
+
+    # Generate CSV preview
+    preview = get_csv_preview(file_path)
+
+    return jsonify({"status": "success", "preview": preview})
+
+def get_csv_preview(file_path):
+    preview = []
+    try:
+        with open(file_path, mode='r') as csvfile:
+            reader = csv.reader(csvfile)
+            for i, row in enumerate(reader):
+                if i == 11:  # Limit to header and first 10 rows
+                    break
+                preview.append(row)
+    except Exception as e:
+        preview = {"error": str(e)}
+
+    return preview
+
+@app.route("/process_uploadCSV_sample_metadata", methods=['POST'])
+def process_uploadCSV_sample_metadata():
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "No file part"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No file selected"}), 400
+
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(file_path)
+
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"status": "error", "message": "Failed to connect to the database"}), 500
+    else:
+        print("Connection Successful")
+    
+    cursor = connection.cursor()
+
+    try:
+        with open(file_path, mode='r') as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader)  # Skip the header row
+            for row in reader:
+                processed_row = [None if field == '' else field for field in row]		
+                cursor.execute(
+                    "INSERT INTO sample_metadata (sample_id, project_name, species, site, latitude, longitude, collection_date, collector_name, storage_solution, storage_volume, tissue_left, tissue_left_date, sample_owner, notes) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", 
+                    processed_row
+                )
+                connection.commit()
+        response = {"status": "success"}
+    except mysql.connector.Error as err:
+        response = {"status": "error", "message": str(err)}
+    finally:
+        cursor.close()
+        connection.close()
+        os.remove(file_path)  # Remove the uploaded file after processing
+
+    return jsonify(response)
+
+
+
+
 if __name__ == '__main__':
     app.run(debug=True)
