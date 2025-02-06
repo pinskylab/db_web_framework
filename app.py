@@ -39,6 +39,13 @@ def log_tissue_box_49_samples():
 def upload_csv_sample_metadata():
     return render_template('upload_csv_sample_metadata.html')
 
+#added function for downloading csv templates
+@app.route('/download_csv_template')
+def download_csv_template():
+	template_path = os.path.join(app.config['STATIC_FOLDER'], 'templates', 'csv_template.csv')
+	return send_from_directory(directory=os.path.dirname(template_path), filename=os.path.basename(template_path))
+
+
 @app.route("/query_sample_id.html")
 def query_sample_id():
     return render_template('query_sample_id.html')
