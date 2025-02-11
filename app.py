@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory, url_for
+from flask import Flask, request, jsonify, render_template, send_from_directory, url_for, send_file, abort
 from markupsafe import Markup
 import mysql.connector
 import markdown2
@@ -243,7 +243,15 @@ def process_uploadCSV_sample_metadata():
 
     return jsonify(response)
 
-
+@app.route('/download/<filename>')
+def download_file(filename):
+    file_path = os.path.join("downloads", filename)
+    
+    # Check if the file exists before sending
+    if not os.path.isfile(file_path):
+        abort(404)  # Return 404 if file does not exist
+    
+    return send_file(file_path, as_attachment=True)
 
 
 if __name__ == '__main__':

@@ -86,9 +86,6 @@
 
 <h1>Upload CSV with Sample Metadata</h1>
 
-<a href="{{ url_for('download_csv_template') }}" class="btn btn-primary">Download CSV Template</a>
-
-
 <form id="uploadForm" enctype="multipart/form-data">
     <label for="file">Choose a file:</label>
     <input type="file" id="file" name="file" required>
@@ -98,6 +95,6 @@
 
 <p>&nbsp;</p>
 
-<a class="button-link" href="{{ url_for('index') }}">Back to Home</a>
+<a class="button-link" href="{{ url_for('index') }}">Back to Home</a> <button class="button-download" onclick="window.location.href='/download/sample_metadata_upload_template.csv'" style="float: right;">Download CSV Template</button>
 
 {% endblock %}

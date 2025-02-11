@@ -55,10 +55,37 @@
             table.appendChild(tr);
         }
 
+        let errorMessages = [];
+        let successMessages = [];
+
+    // Function to check for duplicate sample IDs
+    function hasDuplicateSampleIds() {
+        const table = document.getElementById('sampleGrid');
+        const rows = table.rows;
+        let seenSampleIds = new Set(); // Set to track sample_ids
+
+        // Loop through the table and check for duplicate sample IDs
+        for (let row = 0; row < rows.length; row++) {
+            const cells = rows[row].cells;
+            for (let col = 0; col < cells.length; col++) {
+                const cell = cells[col];
+                const sampleId = cell.textContent.trim();
+                if (sampleId) {
+                    if (seenSampleIds.has(sampleId)) {
+                        return true; // Duplicate found
+                    }
+                    seenSampleIds.add(sampleId); // Add sampleId to the set
+                 }
+            }
+        }
+        return false; // No duplicates
+    }
+
         // Function to submit individual samples
         function submitSample(cell, rowLetter, col) {
             const sampleId = cell.textContent.trim();
             if (sampleId) {
+                console.log("Submitting sample:", sampleId); // Debug log
                 const username = document.getElementById('Username').value;
                 const location = document.getElementById('StorageLocation').value;
                 const boxId = document.getElementById('BoxID').value;
@@ -71,7 +98,6 @@
                     box_name: boxId,
                     box_cell: `${rowLetter}-${col}` // Use row letter and column number
                 };
-
                 fetch('/add_sample_archive_info', {
                     method: 'POST',
                     headers: {
@@ -83,29 +109,61 @@
                 .then(data => {
                     if (data.status === 'success') {
                         console.log(`Sample ${sampleId} logged successfully at ${rowLetter}-${col}`);
+                        successMessages.push(`Sample ${sampleId} logged successfully at ${rowLetter}-${col}`)
+
                     } else {
                         console.error(`Error logging sample ${sampleId} at ${rowLetter}-${col}:`, data.message);
+                        errorMessages.push(`Error logging sample ${sampleId} at ${rowLetter}-${col}: ${data.message}`);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    errorMessages.push(`Error logging sample ${sampleId} at ${rowLetter}-${col}: ${error.message}`);
                 });
             }
         }
 
         // Function to submit all samples
         function submitAllSamples() {
-            const cells = document.querySelectorAll('#sampleGrid td');
-            cells.forEach((cell, index) => {
-                const row = Math.floor(index / cols);
-                const col = index % cols + 1;
-                const rowLetter = rowToLetter(row);
-                submitSample(cell, rowLetter, col);
-            });
+            
+            // Check for duplicate sample IDs before proceeding
+            if (hasDuplicateSampleIds()) {
+                alert('Duplicate sample IDs detected. Please remove duplicates and try again.');
+                return; // Exit the function if duplicates are found
+            }
+            
+            console.log("Starting submission of all samples."); // Debug log
+            const table = document.getElementById('sampleGrid');
+            const rows = table.rows;
+
+            errorMessages = [];
+            successMessages = [];
+
+            for (let row = 0; row < rows.length; row++) {
+                const cells = rows[row].cells;
+                for (let col = 0; col < cells.length; col++) {
+                    const cell = cells[col];
+                    const rowLetter = rowToLetter(row);
+                    submitSample(cell, rowLetter, col + 1);
+                }
+            }
+
+            setTimeout(() => {
+                if(errorMessages.length > 0) {
+                    alert(errorMessages.join('\n'));
+                } else {
+                    alert('All samples submitted successfully')
+                }
+
+                if (successMessages.length > 0){
+                    console.log(successMessages.join('\n'));
+                    alert(successMessages.join('\n'));
+                }
+            }, 1000);
         }
         
     </script>
-    
+
     <p>&nbsp;</p>
     
     <button class="submit-button" id="submitALL" onclick="submitAllSamples()">Submit All</button>
@@ -113,5 +171,6 @@
     <p>&nbsp;</p>
 
     <a class="button-link" href="{{ url_for('index') }}">Back to Home</a>
+
 
 {% endblock %}
