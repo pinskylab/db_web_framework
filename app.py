@@ -45,6 +45,10 @@ def download_csv_template():
 	template_path = os.path.join(app.config['STATIC_FOLDER'], 'templates', 'csv_template.csv')
 	return send_from_directory(directory=os.path.dirname(template_path), filename=os.path.basename(template_path))
 
+@app.route("/upload_sample_ids.html")
+def upload_sample_ids():
+    print("UPLOAD SAMPLE IDS PAGE")
+    return render_template('upload_sample_ids.html')
 
 @app.route("/query_sample_id.html")
 def query_sample_id():
@@ -242,6 +246,49 @@ def process_uploadCSV_sample_metadata():
         os.remove(file_path)  # Remove the uploaded file after processing
 
     return jsonify(response)
+
+
+@app.route("/process_sample_ids", methods=['POST'])
+def process_sample_ids():
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "No file part"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No file selected"}), 400
+
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(file_path)
+
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"status": "error", "message": "Failed to connect to the database"}), 500
+    else:
+        print("Connection Successful")
+    
+    cursor = connection.cursor()
+
+    try:
+        with open(file_path, mode='r') as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader)  # Skip the header row
+            for row in reader:
+                processed_row = [None if field == '' else field for field in row]           
+                cursor.execute(
+                    "INSERT INTO sample_id_data (sample_id) VALUES (%s)",
+                    processed_row
+                )
+                connection.commit()
+        response = {"status": "success"}
+    except mysql.connector.Error as err:
+        response = {"status": "error", "message": str(err)}
+    finally:
+        cursor.close()
+        connection.close()
+        os.remove(file_path)  
+
+    return jsonify(response)
+
 
 @app.route('/download/<filename>')
 def download_file(filename):
