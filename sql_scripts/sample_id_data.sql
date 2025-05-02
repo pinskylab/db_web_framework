@@ -10,39 +10,55 @@ CREATE TABLE sample_id_data (
 
 );
 
-DELIMITER $$
-CREATE PROCEDURE inserting_data()
+BEGIN
+
+    DECLARE v_sample_id VARCHAR(255);
+    DECLARE v_project VARCHAR(255);
+    DECLARE v_species VARCHAR(255);
+    DECLARE v_storage VARCHAR(255);
+    DECLARE done INT DEFAULT 0;
+    
+    DECLARE sample_cursor CURSOR FOR
+        SELECT s.sample_id, m.project_name, m.species, m.storage_solution
+        FROM sample_id_data s
+        JOIN sample_metadata m ON s.sample_id = m.sample_id;
+	
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+    OPEN sample_cursor;
+
+    read_loop: LOOP
+        FETCH sample_cursor INTO v_sample_id, v_project, v_species, v_storage;
+        
+		IF done = 1 THEN 
+            LEAVE read_loop;
+        END IF;
+        
+		
+        UPDATE sample_id_data
+        SET project_name = v_project, 
+            species = v_species, 
+            storage_solution = v_storage
+        WHERE sample_id = v_sample_id;
+    END LOOP;
+
+    CLOSE sample_cursor;
+END
+
+
+
 
 BEGIN
-	DECLARE done INT DEFAULT 0;
-	DECLARE v_sample_id INT;
-	DECLARE v_project VARCHAR(255);
-	DECLARE v_species VARCHAR(255);
-	DECLARE v_storage VARCHAR(255);
+	CREATE TEMPORARY TABLE temp_sample_ids (sample_id VARCHAR(255));
 
-	DECLARE sample_cursor CURSOR FOR
-		SELECT sample_id FROM sample_metadata;
-	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
-	OPEN sample_cursor;
+    INSERT INTO temp_sample_ids (sample_id)
+    SELECT sample_id FROM sample_id_data WHERE sample_id IS NOT NULL;
 
-	read_loop: LOOP
-		FETCH sample_cursor INTO v_sample_id;
-		IF done THEN
-			LEAVE read_loop;
-		END IF;
+    DELETE FROM sample_id_data
+    WHERE sample_id IN (SELECT sample_id FROM temp_sample_ids);
 
-		SELECT project_name, species, storage_solution
-		INTO v_project, v_species, v_storage
-		FROM sample_metadata
-		WHERE sample_id = v_sample_id;
+    DROP TEMPORARY TABLE temp_sample_ids;
+END
 
-	
-	
-		INSERT INTO sample_id_data (sample_id, project_name, species, storage_solution)
-		VALUES (v_sample_id, v_project, v_species, v_storage);
-	END LOOP;
-	CLOSE sample_cursor;
-END $$
 
-DELIMITER ;
+
 
