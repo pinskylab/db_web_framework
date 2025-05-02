@@ -269,6 +269,8 @@ def process_sample_ids():
     cursor = connection.cursor()
 
     try:
+        cursor.callproc('clear_sample_id_table')
+        connection.commit()
         with open(file_path, mode='r') as csvfile:
             reader = csv.reader(csvfile)
             next(reader)  # Skip the header row
@@ -279,6 +281,10 @@ def process_sample_ids():
                     processed_row
                 )
                 connection.commit()
+
+        print("CALLING THE STORED PROCEDURE 'INSERTING_DATA()'");
+        cursor.callproc('inserting_data')
+        connection.commit()
         response = {"status": "success"}
     except mysql.connector.Error as err:
         response = {"status": "error", "message": str(err)}
