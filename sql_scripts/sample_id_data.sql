@@ -1,4 +1,4 @@
-CREATE TABLE sample_id_data (
+CREATE TABLE print_sample_id_barcode (
 	id INT AUTO_INCREMENT PRIMARY KEY, 
 	sample_id VARCHAR(255) NOT NULL UNIQUE, 
 	project_name VARCHAR(255),
