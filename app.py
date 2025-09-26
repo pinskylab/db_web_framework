@@ -45,10 +45,10 @@ def download_csv_template():
 	template_path = os.path.join(app.config['STATIC_FOLDER'], 'templates', 'csv_template.csv')
 	return send_from_directory(directory=os.path.dirname(template_path), filename=os.path.basename(template_path))
 
-@app.route("/upload_sample_ids.html")
-def upload_sample_ids():
-    print("UPLOAD SAMPLE IDS PAGE")
-    return render_template('upload_sample_ids.html')
+@app.route("/upload_csv_for_sample_barcodes.html")
+def upload_csv_for_sample_barcodes():
+    print("UPLOAD SAMPLE IDS TO PRINT BARCODES")
+    return render_template('upload_csv_for_sample_barcodes.html')
 
 @app.route("/query_sample_id.html")
 def query_sample_id():
@@ -248,42 +248,38 @@ def process_uploadCSV_sample_metadata():
     return jsonify(response)
 
 
-@app.route("/process_sample_ids", methods=['POST'])
-def process_sample_ids():
-    if 'file' not in request.files:
-        return jsonify({"status": "error", "message": "No file part"}), 400
-
-    file = request.files['file']
-    if file.filename == '':
+@app.route("/process_sample_ids_for_barcode", methods=['POST'])
+def process_sample_ids_for_barcode():
+    if 'file' not in request.files or request.files['file'].filename == '':
         return jsonify({"status": "error", "message": "No file selected"}), 400
 
+    file = request.files['file']
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
     file.save(file_path)
 
     connection = get_db_connection()
     if not connection:
         return jsonify({"status": "error", "message": "Failed to connect to the database"}), 500
-    else:
-        print("Connection Successful")
     
     cursor = connection.cursor()
 
     try:
-        cursor.callproc('clear_sample_id_table')
-        connection.commit()
+        cursor.execute("TRUNCATE TABLE print_sample_id_barcode")
+
         with open(file_path, mode='r') as csvfile:
             reader = csv.reader(csvfile)
-            next(reader)  # Skip the header row
-            for row in reader:
-                processed_row = [None if field == '' else field for field in row]           
-                cursor.execute(
-                    "INSERT INTO sample_id_data (sample_id) VALUES (%s)",
-                    processed_row
-                )
-                connection.commit()
+            rows = [(row[0],) for row in reader if row]  # single column (sample_id)
 
-        print("CALLING THE STORED PROCEDURE 'INSERTING_DATA()'");
-        cursor.callproc('inserting_data')
+        cursor.executemany("INSERT INTO print_sample_id_barcode (sample_id) VALUES (%s)", rows)
+
+        cursor.execute("""
+            UPDATE print_sample_id_barcode p
+            JOIN sample_metadata m ON p.sample_id = m.sample_id
+            SET p.project_name = m.project_name,
+                p.species = m.species,
+                p.storage_solution = m.storage_solution
+        """)
+
         connection.commit()
         response = {"status": "success"}
     except mysql.connector.Error as err:
@@ -291,7 +287,7 @@ def process_sample_ids():
     finally:
         cursor.close()
         connection.close()
-        os.remove(file_path)  
+        os.remove(file_path)
 
     return jsonify(response)
 

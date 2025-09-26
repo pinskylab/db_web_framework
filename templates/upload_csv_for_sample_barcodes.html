@@ -13,7 +13,7 @@
         formData.append('file', file);
 
         $.ajax({
-            url: "{{ url_for('process_sample_ids') }}",
+            url: "{{ url_for('process_sample_ids_for_barcode') }}",
             type: 'POST',
             data: formData,
             processData: false,
