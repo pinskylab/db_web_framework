@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+<title>Upload File</title>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function uploadAndPreviewCSV(event) {
+            event.preventDefault();
+
+            var formData = new FormData();
+            var file = $('#file')[0].files[0];
+            formData.append('file', file);
+
+            $.ajax({
+                url: "{{ url_for('uploadCSV_os') }}",
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status === "success") {
+                        var preview = response.preview;
+                        var previewTable = "<table border='1'><tr>";
+                        preview.forEach(function(row, rowIndex) {
+                            previewTable += "<tr>";
+                            row.forEach(function(cell, cellIndex) {
+                                previewTable += "<td>" + cell + "</td>";
+                            });
+                            previewTable += "</tr>";
+                        });
+                        previewTable += "</table>";
+                        $('#preview').html(previewTable);
+
+                        // Create and append new button
+                        var newButton = $("<button>")
+                            .attr("id", "newActionButton")
+                            .text("Upload CSV")
+                            .click(function() {
+                                processCSVFile(file);
+                            });
+                        $('#preview').append(newButton);
+
+                    } else {
+                        $('#preview').html("<p style='color:red;'>" + response.message + "</p>");
+                    }
+                },
+                error: function() {
+                    $('#preview').html("<p style='color:red;'>An error occurred while uploading the file.</p>");
+                }
+            });
+        }
+
+        function processCSVFile(file) {
+            var formData = new FormData();
+            formData.append('file', file);
+
+            $.ajax({
+                url: "{{ url_for('process_uploadCSV_extraction_metadata') }}",
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status === "success") {
+                        alert("CSV file processed successfully!");
+                    } else {
+                        alert("Error processing CSV file: " + response.message);
+                    }
+                },
+                error: function() {
+                    alert("An error occurred while processing the CSV file.");
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            $('#uploadForm').on('submit', uploadAndPreviewCSV);
+        });
+    </script>
+
+{% endblock %}
+
+{% block body %}
+
+<h1>Upload CSV with Sample Metadata</h1>
+
+<form id="uploadForm" enctype="multipart/form-data">
+    <label for="file">Choose a file:</label>
+    <input type="file" id="file" name="file" required>
+    <button type="submit" id="uploadButton">Upload and Preview</button>
+</form>
+<div id="preview"></div>
+
+<p>&nbsp;</p>
+
+<a class="button-link" href="{{ url_for('index') }}">Back to Home</a> <button class="button-download" onclick="window.location.href='/download/extraction_metadata_upload_template.csv'" style="float: right;">Download CSV Template</button>
+
+{% endblock %}

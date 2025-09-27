@@ -50,6 +50,10 @@ def upload_csv_for_sample_barcodes():
     print("UPLOAD SAMPLE IDS TO PRINT BARCODES")
     return render_template('upload_csv_for_sample_barcodes.html')
 
+@app.route("/upload_csv_extraction_metadata.html")
+def upload_csv_extraction_metadata():
+    return render_template('upload_csv_extraction_metadata.html')
+
 @app.route("/query_sample_id.html")
 def query_sample_id():
     return render_template('query_sample_id.html')
@@ -247,6 +251,46 @@ def process_uploadCSV_sample_metadata():
 
     return jsonify(response)
 
+@app.route("/process_uploadCSV_extraction_metadata", methods=['POST'])
+def process_uploadCSV_extraction_metadata(): 
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "No file part"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No file selected"}), 400
+
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(file_path)
+
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"status": "error", "message": "Failed to connect to the database"}), 500
+    else:
+        print("Connection Successful")
+    
+    cursor = connection.cursor()
+
+    try:
+        with open(file_path, mode='r') as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader)  # Skip the header row
+            for row in reader:
+                processed_row = [None if field == '' else field for field in row]		
+                cursor.execute(
+                    "INSERT INTO extraction_metadata (extraction_id, sample_id, extraction_date, extraction_method, amount_of_sample_used, extractor_name, contact, notes) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", 
+                    processed_row
+                )
+                connection.commit()
+        response = {"status": "success"}
+    except mysql.connector.Error as err:
+        response = {"status": "error", "message": str(err)}
+    finally:
+        cursor.close()
+        connection.close()
+        os.remove(file_path)  # Remove the uploaded file after processing
+
+    return jsonify(response)
 
 @app.route("/process_sample_ids_for_barcode", methods=['POST'])
 def process_sample_ids_for_barcode():
