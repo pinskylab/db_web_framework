@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Upload Sample IDs</title>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    function uploadAndPreviewCSV(event) {
+        event.preventDefault();
+
+        var formData = new FormData();
+        var file = $('#file')[0].files[0];
+        formData.append('file', file);
+
+        $.ajax({
+            url: "{{ url_for('process_plate_id_for_plate_barcode') }}", 
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.status === "success") {
+                    $('#preview').html("<p style='color:green;'>Sample IDs processed successfully!</p>");
+                } else {
+                    $('#preview').html("<p style='color:red;'>" + response.message + "</p>");
+                }
+            },
+            error: function() {
+                $('#preview').html("<p style='color:red;'>An error occurred while uploading the file.</p>");
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        $('#uploadForm').on('submit', uploadAndPreviewCSV);
+    });
+</script>
+{% endblock %}
+
+{% block body %}
+<h1>Upload Sample IDs</h1>
+
+<form id="uploadForm" enctype="multipart/form-data">
+    <label for="file">Choose a file:</label>
+    <input type="file" id="file" name="file" accept=".csv" required>
+    <button type="submit" id="uploadButton">Upload and Process</button>
+</form>
+<div id="preview"></div>
+
+<p>&nbsp;</p>
+
+<a class="button-link" href="{{ url_for('index') }}">Back to Home</a>
+
+{% endblock %}
+

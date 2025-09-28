@@ -27,36 +27,26 @@ def readme():
         html_content = markdown2.markdown(content, extras=["fenced-code-blocks"])
     return render_template('README.html', content=Markup(html_content))
 
-@app.route("/log_tissue_box_100_samples.html")
-def log_tissue_box_100_samples():
-    return render_template('log_tissue_box_100_samples.html')
-
 @app.route("/log_tissue_box_samples.html")
 def log_tissue_box_samples():
     return render_template('log_tissue_box_samples.html')
-
-@app.route("/log_tissue_box_49_samples.html")
-def log_tissue_box_49_samples():
-    return render_template('log_tissue_box_49_samples.html')
-
-@app.route("/upload_csv_sample_metadata.html")
-def upload_csv_sample_metadata():
-    return render_template('upload_csv_sample_metadata.html')
-
-#added function for downloading csv templates
-@app.route('/download_csv_template')
-def download_csv_template():
-	template_path = os.path.join(app.config['STATIC_FOLDER'], 'templates', 'csv_template.csv')
-	return send_from_directory(directory=os.path.dirname(template_path), filename=os.path.basename(template_path))
 
 @app.route("/upload_csv_for_sample_barcodes.html")
 def upload_csv_for_sample_barcodes():
     print("UPLOAD SAMPLE IDS TO PRINT BARCODES")
     return render_template('upload_csv_for_sample_barcodes.html')
 
+@app.route("/upload_csv_sample_metadata.html")
+def upload_csv_sample_metadata():
+    return render_template('upload_csv_sample_metadata.html')
+
 @app.route("/upload_csv_extraction_metadata.html")
 def upload_csv_extraction_metadata():
     return render_template('upload_csv_extraction_metadata.html')
+
+@app.route("/upload_csv_for_plate_barcode.html")
+def upload_csv_for_plate_barcode():
+    return render_template('upload_csv_for_plate_barcode.html')
 
 @app.route("/query_sample_id.html")
 def query_sample_id():
@@ -339,6 +329,48 @@ def process_sample_ids_for_barcode():
 
     return jsonify(response)
 
+@app.route("/process_plate_id_for_plate_barcode", methods=['POST'])
+def process_plate_id_for_plate_barcode():
+    if 'file' not in request.files or request.files['file'].filename == '':
+        return jsonify({"status": "error", "message": "No file selected"}), 400
+
+    file = request.files['file']
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(file_path)
+
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"status": "error", "message": "Failed to connect to the database"}), 500
+    
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute("TRUNCATE TABLE print_plate_barcode")
+
+        with open(file_path, mode='r') as csvfile:
+            reader = csv.reader(csvfile)
+            rows = [(row[0],) for row in reader if row]  # single column (plate_id)
+
+        cursor.executemany("INSERT INTO print_plate_barcode (plate_id) VALUES (%s)", rows)
+
+        connection.commit()
+        response = {"status": "success"}
+    except mysql.connector.Error as err:
+        response = {"status": "error", "message": str(err)}
+    finally:
+        cursor.close()
+        connection.close()
+        os.remove(file_path)
+
+    return jsonify(response)
+    
+# ==== SECTION: File Download Functions ====
+
+#added function for downloading csv templates
+@app.route('/download_csv_template')
+def download_csv_template():
+	template_path = os.path.join(app.config['STATIC_FOLDER'], 'templates', 'csv_template.csv')
+	return send_from_directory(directory=os.path.dirname(template_path), filename=os.path.basename(template_path))
 
 @app.route('/download/<filename>')
 def download_file(filename):
