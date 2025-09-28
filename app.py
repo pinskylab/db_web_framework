@@ -27,9 +27,13 @@ def readme():
         html_content = markdown2.markdown(content, extras=["fenced-code-blocks"])
     return render_template('README.html', content=Markup(html_content))
 
-@app.route("/log_tissue_box_81_samples.html")
-def log_tissue_box_81_samples():
-    return render_template('log_tissue_box_81_samples.html')
+@app.route("/log_tissue_box_100_samples.html")
+def log_tissue_box_100_samples():
+    return render_template('log_tissue_box_100_samples.html')
+
+@app.route("/log_tissue_box_samples.html")
+def log_tissue_box_samples():
+    return render_template('log_tissue_box_samples.html')
 
 @app.route("/log_tissue_box_49_samples.html")
 def log_tissue_box_49_samples():

@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Log Samples 9x9 Box</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        td {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<h1>Sample Storage Box 9x9</h1>
+
+    <label for="Username">Username: </label>
+    <input type="text" id="Username" name="Username">
+    <p>&nbsp;</p>
+    <label for="StorageLocation">Storage Location: </label>
+    <input type="text" id="StorageLocation" name="StorageLocation">
+    <p>&nbsp;</p>
+    <label for="BoxID">Box ID: </label>
+    <input type="text" id="BoxID" name="BoxID">
+    <p>&nbsp;</p>
+    
+    <!-- Dropdown to choose grid size -->
+    <label for="gridSize">Select Box Size:</label>
+    <select id="gridSize" onchange="generateGrid()">
+        <option value="">-- Choose a size --</option>
+        <option value="7x7">7x7</option>
+        <option value="9x9">9x9</option>
+        <option value="10x10">10x10</option>
+    </select>
+
+    <table id="sampleGrid">
+        <!-- Grid will be generated dynamically with JavaScript -->
+    </table>
+
+<script>
+    let errorMessages = [];
+    let successMessages = [];
+
+    function rowToLetter(row) {
+        return String.fromCharCode(65 + row);
+    }
+
+    // Function to build the grid based on dropdown selection
+    function generateGrid() {
+        const table = document.getElementById('sampleGrid');
+        table.innerHTML = ""; // clear any existing grid
+
+        const size = document.getElementById('gridSize').value;
+        if (!size) return;
+
+        const [rows, cols] = size.split("x").map(Number);
+
+        for (let i = 0; i < rows; i++) {
+            const tr = document.createElement('tr');
+            for (let j = 0; j < cols; j++) {
+                const td = document.createElement('td');
+                td.contentEditable = true;
+                tr.appendChild(td);
+            }
+            table.appendChild(tr);
+        }
+    }
+
+    function hasDuplicateSampleIds() {
+        const table = document.getElementById('sampleGrid');
+        const rows = table.rows;
+        let seenSampleIds = new Set();
+
+        for (let row = 0; row < rows.length; row++) {
+            const cells = rows[row].cells;
+            for (let col = 0; col < cells.length; col++) {
+                const sampleId = cells[col].textContent.trim();
+                if (sampleId) {
+                    if (seenSampleIds.has(sampleId)) {
+                        return true;
+                    }
+                    seenSampleIds.add(sampleId);
+                }
+            }
+        }
+        return false;
+    }
+
+    function submitSample(cell, rowLetter, col) {
+        const sampleId = cell.textContent.trim();
+        if (sampleId) {
+            const username = document.getElementById('Username').value;
+            const location = document.getElementById('StorageLocation').value;
+            const boxId = document.getElementById('BoxID').value;
+
+            const data = {
+                sample_id: sampleId,
+                inventory_date: new Date().toISOString().split('T')[0],
+                inventory_location: location,
+                inventoried_by_username: username,
+                box_name: boxId,
+                box_cell: `${rowLetter}-${col}`
+            };
+
+            fetch('/add_sample_archive_info', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    successMessages.push(`Sample ${sampleId} logged successfully at ${rowLetter}-${col}`);
+                } else {
+                    errorMessages.push(`Error logging sample ${sampleId} at ${rowLetter}-${col}: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                errorMessages.push(`Error logging sample ${sampleId} at ${rowLetter}-${col}: ${error.message}`);
+            });
+        }
+    }
+
+    function submitAllSamples() {
+        const table = document.getElementById('sampleGrid');
+        if (table.rows.length === 0) {
+            alert("Please select a box size before submitting.");
+            return;
+        }
+
+        if (hasDuplicateSampleIds()) {
+            alert('Duplicate sample IDs detected. Please remove duplicates and try again.');
+            return;
+        }
+
+        errorMessages = [];
+        successMessages = [];
+
+        for (let row = 0; row < table.rows.length; row++) {
+            const cells = table.rows[row].cells;
+            for (let col = 0; col < cells.length; col++) {
+                submitSample(cells[col], rowToLetter(row), col + 1);
+            }
+        }
+
+        setTimeout(() => {
+            if (errorMessages.length > 0) {
+                alert(errorMessages.join('\n'));
+            } else {
+                alert('All samples submitted successfully');
+            }
+
+            if (successMessages.length > 0) {
+                console.log(successMessages.join('\n'));
+                alert(successMessages.join('\n'));
+            }
+        }, 1000);
+    }
+</script>
+
+<p>&nbsp;</p>
+<button class="submit-button" id="submitALL" onclick="submitAllSamples()">Submit All</button>
+<p>&nbsp;</p>
+<a class="button-link" href="{{ url_for('index') }}">Back to Home</a>
+
+{% endblock %}
