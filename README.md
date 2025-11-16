@@ -30,6 +30,12 @@ python3 -m venv env
 # Source Environment
 source env/bin/activate
 ```
+If venv is not installed:
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install python3.12-venv
+```
+
 ## 3. Install Dependencies
 ```bash
 pip install -r requirements.txt
