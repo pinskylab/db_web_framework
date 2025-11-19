@@ -15,6 +15,19 @@
             text-align: center;
         }
     </style>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <style>
+        #sampleMap {
+            height: 500px;
+            width: 600px;
+            margin: 20px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
@@ -25,30 +38,109 @@
     <input type="text" id="SampleID" name="SampleID">
 
     <script>
+        const sampleFieldOrder = [
+            "species",
+            "sample_id",
+            "project_name",
+            "collection_date",
+            "collector_name",
+            "sample_owner",
+            "storage_solution",
+            "storage_volume",
+            "tissue_left",
+            "tissue_left_date",
+            "site",
+            "latitude",
+            "longitude",
+            "notes"
+        ];
+
+        const extractionFieldOrder = [
+            "extraction_id",
+            "sample_id",
+            "extractor_name",
+            "extraction_date",
+            "extraction_method",
+            "amount_of_sample_used",
+            "contact",
+            "notes"
+        ];
+
+        function formatSection(title, rows, fieldOrder) {
+            if (!rows || rows.length === 0) {
+                return `<h3>${title}</h3><p>No records found.</p>`;
+            }
+
+            let html = `<h3>${title}</h3>`;
+            rows.forEach(row => {
+                html += `<div class="record">`;
+                fieldOrder.forEach(field => {
+                    if (field in row) {
+                        html += `<div><strong>${field.replace(/_/g, " ")}:</strong> ${row[field] ?? "N/A"}</div>`;
+                    }
+                });
+                html += `</div><hr>`;
+            });
+            return html;
+        }
+
         function submitSampleID() {
             const sample_id = document.getElementById('SampleID').value;
 
             const data = { sample_id: sample_id };
             const data2 = { sample_id: sample_id };  // or change if you really want different things
 
-    // First fetch
+            // First fetch
             const req1 = fetch('/query_sample_id_metadata', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data)
             }).then(r => r.json());
 
-    // Second fetch (different endpoint or same?)
+            // Second fetch (different endpoint or same?)
             const req2 = fetch('/query_sample_id_extraction_metadata', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data2)
             }).then(r => r.json());
 
-    // Wait for *both* responses
+            // Wait for *both* responses
             Promise.all([req1, req2]).then(([result1, result2]) => {
-                document.getElementById('result').innerText =
-                    `Sample Metadata:\n${JSON.stringify(result1, null, 2)}\n\nExtraction Metadata:\n${JSON.stringify(result2, null, 2)}`;
+                const sampleHTML = formatSection("Sample Metadata", result1.data, sampleFieldOrder);
+
+                // Extract latitude/longitude from sample metadata
+                let lat = null;
+                let lon = null;
+
+                if (result1.data && result1.data.length > 0) {
+                    lat = parseFloat(result1.data[0].latitude);
+                    lon = parseFloat(result1.data[0].longitude);
+                }
+
+                // Only render map if valid coordinates exist
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    // Initialize the map
+                    const map = L.map('sampleMap').setView([lat, lon], 10);
+
+                    // Load OpenStreetMap tiles
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19
+                    }).addTo(map);
+
+                    // Place marker
+                    L.marker([lat, lon]).addTo(map)
+                        .bindPopup(`Sample Location<br>Lat: ${lat}<br>Lon: ${lon}`)
+                        .openPopup();
+                } else {
+                    document.getElementById("sampleMap").innerHTML =
+                        "<p style='color:red; text-align:center;'>No valid latitude/longitude found.</p>";
+                }
+
+                // Add extraction metadata after the map
+
+                const extractionHTML = formatSection("Extraction Metadata", result2.data, extractionFieldOrder);
+
+                document.getElementById('result').innerHTML = sampleHTML + extractionHTML;
             });
         }
     </script>
@@ -60,6 +152,7 @@
     <p>&nbsp;</p>
 
     <div id="result" style="white-space: pre-wrap; margin-top: 1rem;"></div>
+    <div id="sampleMap"></div>
 
     <p>&nbsp;</p>
 
