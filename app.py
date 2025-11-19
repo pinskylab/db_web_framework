@@ -28,28 +28,32 @@ def readme():
     return render_template('README.html', content=Markup(html_content))
 
 @app.route("/log_tissue_box_samples.html")
-def log_tissue_box_samples():
+def log_tissue_box_samples_page():
     return render_template('log_tissue_box_samples.html')
 
 @app.route("/upload_csv_for_sample_barcodes.html")
-def upload_csv_for_sample_barcodes():
+def upload_csv_for_sample_barcodes_page():
     print("UPLOAD SAMPLE IDS TO PRINT BARCODES")
     return render_template('upload_csv_for_sample_barcodes.html')
 
 @app.route("/upload_csv_sample_metadata.html")
-def upload_csv_sample_metadata():
+def upload_csv_sample_metadata_page():
     return render_template('upload_csv_sample_metadata.html')
 
 @app.route("/upload_csv_extraction_metadata.html")
-def upload_csv_extraction_metadata():
+def upload_csv_extraction_metadata_page():
     return render_template('upload_csv_extraction_metadata.html')
 
 @app.route("/upload_csv_for_plate_barcode.html")
-def upload_csv_for_plate_barcode():
+def upload_csv_for_plate_barcode_page():
     return render_template('upload_csv_for_plate_barcode.html')
 
+@app.route("/query_lab_members.html")
+def query_lab_members_page():
+    return render_template('query_lab_members.html')
+
 @app.route("/query_sample_id.html")
-def query_sample_id():
+def query_sample_id_page():
     return render_template('query_sample_id.html')
 
 # ==== SECTION: Database Connection Functions ====
@@ -118,7 +122,6 @@ def add_sample_archive_info():
             return jsonify({"status": "error", "message": "Failed to connect to the database"}), 500
 
         cursor = connection.cursor()
-
         print("Database connection established")
 
         # Call the stored procedure and pass parameters
@@ -160,6 +163,69 @@ def query_lab_member_info():
 
         cursor.execute(query)
         
+        rows = cursor.fetchall()
+
+        response = {"status": "success", "data": rows}
+
+    except mysql.connector.Error as err:
+        response = {"status": "error", "message": str(err)}
+    finally:
+        cursor.close()
+        connection.close()
+
+    return jsonify(response)
+
+# This function will connect to the MySQL database, and query all of the sample ID metadata into a table 
+@app.route('/query_sample_id_metadata', methods=['POST'])
+def query_sample_id_metadata():
+    data = request.get_json()
+    sample_id = data['sample_id']
+
+    if not sample_id:
+        return jsonify({"status": "error", "message": "No Sample ID supplied"}), 400
+
+    try:
+        connection = get_db_connection()
+        if not connection:
+            print("Failed to connect to the database")
+            return jsonify({"status": "error", "message": "Failed to connect to the database"}), 500
+
+        cursor = connection.cursor(dictionary=True)
+        print("Database connection established")
+
+        query = "SELECT * FROM sample_metadata WHERE sample_id = %s"
+        cursor.execute(query, (sample_id,)) 
+        rows = cursor.fetchall()
+
+        response = {"status": "success", "data": rows}
+
+    except mysql.connector.Error as err:
+        response = {"status": "error", "message": str(err)}
+    finally:
+        cursor.close()
+        connection.close()
+
+    return jsonify(response)
+
+@app.route('/query_sample_id_extraction_metadata', methods=['POST'])
+def query_sample_id_extraction_metadata():
+    data = request.get_json()
+    sample_id = data['sample_id']
+
+    if not sample_id:
+        return jsonify({"status": "error", "message": "No Sample ID supplied"}), 400
+
+    try:
+        connection = get_db_connection()
+        if not connection:
+            print("Failed to connect to the database")
+            return jsonify({"status": "error", "message": "Failed to connect to the database"}), 500
+
+        cursor = connection.cursor(dictionary=True)
+        print("Database connection established")
+
+        query = "SELECT * FROM extraction_metadata WHERE sample_id = %s"
+        cursor.execute(query, (sample_id,)) 
         rows = cursor.fetchall()
 
         response = {"status": "success", "data": rows}
